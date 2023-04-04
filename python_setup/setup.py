@@ -5,31 +5,18 @@ Purpose:
     Import necessary modules and setup constants
 '''
 
-# %%
-# The common modules
-import numpy as np
-import pandas as pd
-import plotly.express as px  # Used for interactive plotting
-import plotly.graph_objects as go
-import matplotlib.pyplot as plt  # Used for efficient plotting
-
-from pathlib import Path
-from tqdm.auto import tqdm
-
-# %%
-# The special modules
-import nibabel
-import imio.load
-from vedo import Volume
-
 
 # %%
 # The local modules
-from .digger import Digger
+from .required_modules import *
+from .file_walker import FileWalker
 from .logger import generate_logger, default_logging_kwargs
 
 # %%
+# Setup the PROJECT_NAME
 PROJECT_NAME = 'CH-PROJECT-CHECKOUT'
+
+# Setup the ROOT_PATH
 ROOT_PATH = Path(__file__).parent.parent
 
 # %%

@@ -1,12 +1,13 @@
 '''
-File: digger.py
+File: file_walker.py
 Author: Chuncheng Zhang
 Purpose:
-    Define the Digger class.
+    Define the FileWalker class.
     Dig into the given root path for its siblings iteratively.
 '''
 
 # %%
+import time
 from pathlib import Path
 
 # %%
@@ -16,13 +17,15 @@ extents = ['.html', '.nii.gz', '.mgz']
 # %%
 
 
-class Digger(object):
+class FileWalker(object):
     '''
     Dig into the given root path for its siblings iteratively.
     '''
 
     def __init__(self, root):
         '''
+        Dig into the given root path for its siblings iteratively.
+
         Init the object with the given root path,
         of course it is an existing and readable directory.
         '''
@@ -46,11 +49,26 @@ class Digger(object):
 
         files = []
 
+        t = time.time()
+
         while remain_folders:
             folder = remain_folders.pop()
             [remain_folders.append(e) for e in folder.iterdir() if e.is_dir()]
             [files.append(e) for e in folder.iterdir() if _use_file(e)]
 
+        self._time_costing = time.time() - t
+
         return files
+
+    @property
+    def time_costing(self):
+        '''
+        Get the latest walk_through time cost.
+        '''
+        if hasattr(self, '_time_costing'):
+            return self._time_costing
+        else:
+            return -1
+
 
 # %%

@@ -1,22 +1,22 @@
 # %%
 from vedo import show
-from toolbox.setup import *
+from python_setup.setup import *
 
 # %%
 LOGGER.info('The project starts.')
 
 # %%
 extents = ['.html', '.nii.gz', '.mgz']
-digger = Digger(ROOT_PATH.joinpath('private'))
-files = digger.walk_through(extents=extents)
+walker = FileWalker(ROOT_PATH.joinpath('private'))
+files = walker.walk_through(extents=extents)
 
-LOGGER.debug('Found {} files'.format(len(files)))
+LOGGER.debug('Found {} files in {} seconds'.format(len(files), walker.time_costing))
 
 files = pd.DataFrame(files, columns=['pathlib'])
 files['filename'] = files['pathlib'].map(lambda e: e.name.strip())
 files['extent'] = files['pathlib'].map(lambda e: ''.join(e.suffixes))
 files['parent'] = files['pathlib'].map(
-    lambda e: e.relative_to(digger.root).parent.as_posix())
+    lambda e: e.relative_to(walker.root).parent.as_posix())
 files = files[['extent', 'filename', 'parent', 'pathlib']]
 files
 

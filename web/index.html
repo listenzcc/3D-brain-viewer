@@ -1,0 +1,61 @@
+<html>
+  <head>
+    <title>Title</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <script src="/src/script.js"></script>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      div {
+        margin: 4px;
+        padding: 4px;
+      }
+
+      div#files-container {
+        width: 12in;
+        max-height: 10em;
+        overflow-y: scroll;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Title</h1>
+
+    <div>
+      <div id="files-container"></div>
+      <script src="src/files-container.js"></script>
+    </div>
+
+    <div>
+      <div id="img-z"></div>
+      <div id="img-x"></div>
+      <div id="img-y"></div>
+      <script src="src/img-example.js"></script>
+    </div>
+
+    <div>
+      <canvas
+        id="myCanvas"
+        width="600"
+        height="600"
+        style="border: 1px solid #000000"
+      >
+      </canvas>
+      <script src="src/myCanvas.js"></script>
+    </div>
+
+    <script>
+      // console.log(Plot)
+      // document.body.append(Plot.plot(options));
+    </script>
+  </body>
+</html>
