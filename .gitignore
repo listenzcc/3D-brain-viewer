@@ -1,3 +1,5 @@
 __pycache__
 *.log
+*.obj
 private
+threejs

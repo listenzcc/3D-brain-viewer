@@ -1,0 +1,14 @@
+{
+    "cSpell.words": [
+        "fsaverage",
+        "iloc",
+        "imio",
+        "nibabel",
+        "vedo"
+    ],
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#4D2102",
+        "titleBar.activeBackground": "#6C2E03",
+        "titleBar.activeForeground": "#FFFBF8"
+    }
+}
