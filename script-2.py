@@ -91,13 +91,23 @@ img1.df
 # Pending
 df = img1.df.query('value > 0')[['x', 'y', 'z', 'value']]
 print(df.size / 1024 / 1024)
+df
 
-df = img1.df.query('filled_value > 3')[['x', 'y', 'z', 'filled_value']]
-print(df.size / 1024 / 1024)
+# %%
+# df = img1.df.query('filled_value > 3')[['x', 'y', 'z', 'filled_value']]
+# print(df.size / 1024 / 1024)
 
 # %% ---- 2023-04-04 ----
 # Pending
+a = df.to_numpy().astype(np.int8).ravel().tolist()
+print(len(a) * 4 / 1024 / 1024)
+
+
 # %%
-img1.array_3d.size / 1024 / 1024
+
+dir(a)
+# %%
+b = a.tobytes()
+len(b) / 1024 / 1024
 
 # %%

@@ -1,40 +1,61 @@
-function myCanvas(z = 0) {
-  const container = document.getElementById("img-z"),
-    url = `/fetch/img_example.json?query=z==${z}`;
+function myCanvas(columnIdx, value) {
+  // How many pixels represent one point in the MRI point cloud.
+  const pixelRatio = 2;
 
-  //   container.innerHTML = "<span>Loading image</span>";
-  const c = document.getElementById("myCanvas"),
-    { width, height } = c,
-    ctx = c.getContext("2d");
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, width, height);
+  const { templateDense, overlayDense } = Global;
 
-  d3.json(url).then((raw) => {
-    console.log(raw);
+  const ctx = (() => {
+    const c = document.getElementById("myCanvas"),
+      { width, height } = c,
+      ctx = c.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, width, height);
+    Object.assign(ctx, { width, height });
+    return ctx;
+  })();
 
-    const extX = d3.extent(raw, (d) => d.x),
-      extY = d3.extent(raw, (d) => d.y),
-      extZ = d3.extent(raw, (d) => d.z),
-      extV = d3.extent(raw, (d) => d.value),
+  function mkSlice(dense) {
+    const filtered = dense.filter((d) => d[columnIdx] === value),
+      { columns } = dense,
+      slice = filtered.map((d) => {
+        const obj = {};
+        columns.map((c, i) => {
+          obj[c] = d[i];
+        });
+        return obj;
+      });
+    return slice;
+  }
+
+  const slice = mkSlice(templateDense),
+    sliceOverlay = mkSlice(overlayDense);
+
+  {
+    const extX = d3.extent(slice, (d) => d.x),
+      extY = d3.extent(slice, (d) => d.y),
+      extZ = d3.extent(slice, (d) => d.z),
+      extV = d3.extent(slice, (d) => d.v),
       colorMap = d3.scaleLinear().domain(extV).range(["gray", "white"]),
-      heatMap = d3.scaleLinear().domain([3, 6]).range(["red", "white"]);
+      heatMap = d3.scaleLinear().domain([3, 6]).range(["red", "white"]),
+      { width, height } = ctx;
 
     const scaleX = d3
         .scaleLinear()
-        .domain([0, -extX[0] / 2])
-        .range([height / 2, height / 2 + extX[0]]),
+        .domain([0, -extX[0] / pixelRatio])
+        .range([height / pixelRatio, height / pixelRatio + extX[0]]),
       scaleY = d3
         .scaleLinear()
-        .domain([0, extY[1] / 2])
-        .range([width / 2, width / 2 + extY[1]]);
+        .domain([0, extY[1] / pixelRatio])
+        .range([width / pixelRatio, width / pixelRatio + extY[1]]);
 
-    raw.map(({ x, y, value, filled_value }) => {
-      if (filled_value > 3) {
-        ctx.fillStyle = heatMap(filled_value);
-      } else {
-        ctx.fillStyle = colorMap(value);
-      }
-      ctx.fillRect(scaleY(y), scaleX(x), 2, 2);
+    slice.map(({ x, y, v }) => {
+      ctx.fillStyle = colorMap(v);
+      ctx.fillRect(scaleY(y), scaleX(x), pixelRatio, pixelRatio);
+    });
+
+    sliceOverlay.map(({ x, y, v }) => {
+      ctx.fillStyle = heatMap(v);
+      ctx.fillRect(scaleY(y), scaleX(x), pixelRatio, pixelRatio);
     });
 
     ctx.strokeStyle = "cyan";
@@ -47,7 +68,5 @@ function myCanvas(z = 0) {
       scaleY(extY[0]) - scaleY(extY[1]),
       scaleX(extX[1]) - scaleX(extX[0])
     );
-  });
+  }
 }
-
-myCanvas(20);

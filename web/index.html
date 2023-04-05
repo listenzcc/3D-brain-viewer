@@ -36,20 +36,31 @@
     </div>
 
     <div>
-      <div id="img-z"></div>
-      <div id="img-x"></div>
-      <div id="img-y"></div>
-      <script src="src/img-example.js"></script>
-    </div>
-
-    <div>
-      <canvas
-        id="myCanvas"
-        width="600"
-        height="600"
-        style="border: 1px solid #000000"
-      >
-      </canvas>
+      <div>
+        <span>Z slice (mm): </span>
+        <span id="z-range-p" style="width: 2em; display: inline-block"></span>
+        <input id="z-range" type="range" min="-100" max="100" value="0" step="1"
+        / >
+        <script>
+          document.getElementById("z-range").oninput = () => {
+            const { value } = document.getElementById("z-range");
+            document.getElementById("z-range-p").innerHTML = value;
+          };
+          document.getElementById("z-range").onchange = () => {
+            const { value } = document.getElementById("z-range");
+            myCanvas(2, parseInt(value));
+          };
+        </script>
+      </div>
+      <div>
+        <canvas
+          id="myCanvas"
+          width="600"
+          height="600"
+          style="border: 1px solid #000000"
+        >
+        </canvas>
+      </div>
       <script src="src/myCanvas.js"></script>
     </div>
 

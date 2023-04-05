@@ -20,7 +20,6 @@ from module.load_files import files
 from module.mri_img import MRIImg
 
 
-
 # %% ---- 2023-04-04 ------------------------
 # Load resources
 app = flask.Flask(PROJECT_NAME)
@@ -49,9 +48,11 @@ img1.fill_from(img2)
 # Routes static files
 web_folder = Path('./web')
 
+
 @app.route('/')
 def index():
     return open(web_folder.joinpath('index.html')).read()
+
 
 @app.route('/src/<src_path>')
 def src_folder(src_path):
@@ -60,8 +61,10 @@ def src_folder(src_path):
 # %% ---- 2023-04-04 ------------------------
 # Routes runtime data
 
+
 def df2list(df):
-    return [df.iloc[i].to_dict() for i in range(len(df))]
+    return [df.iloc[i].to_dict() for i in tqdm(range(len(df)))]
+
 
 @app.route('/fetch/files.json')
 def fetch_files():
@@ -69,6 +72,7 @@ def fetch_files():
     for col in df.columns:
         df[col] = df[col].map(str)
     return df2list(df)
+
 
 @app.route('/fetch/img_example.json')
 def fetch_img_example():
@@ -82,12 +86,31 @@ def fetch_img_example():
     return df2list(df[['x', 'y', 'z', 'value', 'filled_value']])
 
 
+@app.route('/fetch/template_dense.json')
+def fetch_template_dense():
+    df = img1.df.query('value > 0')[['x', 'y', 'z', 'value']].copy()
+    df.columns = ['x', 'y', 'z', 'v']
+    print('/fetch/template_dense.json')
+    print(df)
+    return df.iloc[::1].to_numpy().astype(np.int8).ravel().tolist()
+
+
+@app.route('/fetch/overlay_dense.json')
+def fetch_overlay_dense():
+    img1.fill_from(img2)
+    df = img1.df.query('filled_value > 3')[
+        ['x', 'y', 'z', 'filled_value']].copy()
+    df.columns = ['x', 'y', 'z', 'v']
+    df['v'] *= 10
+    print('/fetch/overlay_dense.json')
+    print(df)
+    return df.iloc[::1].to_numpy().astype(np.int8).ravel().tolist()
+
 
 # %% ---- 2023-04-04 ------------------------
 # Startup flask application
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=7788)
-
+    app.run(host='localhost', port=7788)
 
 
 # %% ---- 2023-04-04 ------------------------
