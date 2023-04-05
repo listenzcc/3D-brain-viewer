@@ -89,7 +89,15 @@ img1.df
 
 # %% ---- 2023-04-04 ----
 # Pending
+df = img1.df.query('value > 0')[['x', 'y', 'z', 'value']]
+print(df.size / 1024 / 1024)
 
+df = img1.df.query('filled_value > 3')[['x', 'y', 'z', 'filled_value']]
+print(df.size / 1024 / 1024)
 
 # %% ---- 2023-04-04 ----
 # Pending
+# %%
+img1.array_3d.size / 1024 / 1024
+
+# %%
