@@ -24,10 +24,10 @@ function dense2slice(dense, filterColumn, quickLookFlag) {
   if (!dense) return [];
 
   var { column: columnName, value: columnValue } = filterColumn,
-    { columns } = dense,
+    { columns } = Global,
     columnIdx = columns.indexOf(columnName),
     valueIdx = columns.indexOf("v"),
-    filtered = dense.filter((d) => d[columnIdx] === columnValue);
+    filtered = dense.filter((d) => Math.abs(d[columnIdx] - columnValue) < 0.5);
 
   // Only use the 2000 points with the smallest values,
   // it almost draw the outline of the slice,
@@ -42,6 +42,7 @@ function dense2slice(dense, filterColumn, quickLookFlag) {
   const slice = filtered.map((d) => {
     const obj = {};
     columns.map((c, i) => {
+      // obj[c] = i < 3 ? parseInt(d[i] + 0.5) : d[i];
       obj[c] = d[i];
     });
     return obj;
@@ -83,7 +84,10 @@ function redrawCanvas(point, quickLookFlag, forceRedrawXYZ) {
   }
 
   const selectedPoint = overlayDense.filter(
-    (d) => d[0] === point.x && d[1] === point.y && d[2] === point.z
+    (d) =>
+      Math.abs(d[0] - point.x) < 0.5 &&
+      Math.abs(d[1] - point.y) < 0.5 &&
+      Math.abs(d[2] - point.z) < 0.5
   );
 
   var filterColumn, ctx, slice, sliceOverlay;
