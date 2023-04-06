@@ -1,5 +1,5 @@
 /*
-File: script.js
+File: initResource.js
 Author: Chuncheng Zhang
 Date: 2023-04-04
 Functions:
@@ -12,7 +12,7 @@ Functions:
 
 // %% ---- 2023-04-04 ------------------------
 // On startup
-console.log("script.js is working...");
+console.log("initResource.js is working...");
 
 // %% ---- 2023-04-04 ------------------------
 // Initialize the global variables
@@ -55,7 +55,7 @@ Global.reportGlobal = () => {
       Global.overlayDense = mkDense(raw);
       Global.overlayDense.map((d) => (d[3] /= 10.0));
       console.log("Global.overlay_dense is updated.");
-      myCanvas(2, 0);
+      redrawCanvas({ column: "z", value: 0 });
     });
   });
 }

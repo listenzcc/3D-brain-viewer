@@ -5,7 +5,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
 
-    <script src="/src/script.js"></script>
+    <script src="/src/initResource.js"></script>
 
     <style>
       html,
@@ -24,6 +24,10 @@
         max-height: 10em;
         overflow-y: scroll;
       }
+
+      canvas {
+        border: 2px solid #492121;
+      }
     </style>
   </head>
 
@@ -32,36 +36,65 @@
 
     <div>
       <div id="files-container"></div>
-      <script src="src/files-container.js"></script>
+      <script src="/src/updateFiles.js"></script>
     </div>
 
     <div>
       <div>
-        <span>Z slice (mm): </span>
-        <span id="z-range-p" style="width: 2em; display: inline-block"></span>
-        <input id="z-range" type="range" min="-100" max="100" value="0" step="1"
-        / >
+        <div>
+          <span>Slice X (mm): </span>
+          <span id="x-range-p" style="width: 2em; display: inline-block"></span>
+          <input id="x-range" type="range" min="-100" max="100" value="0"
+          step="1" / >
+        </div>
+        <div>
+          <span>Slice Y (mm): </span>
+          <span id="y-range-p" style="width: 2em; display: inline-block"></span>
+          <input id="y-range" type="range" min="-100" max="100" value="0"
+          step="1" / >
+        </div>
+        <div>
+          <span>Slice Z (mm): </span>
+          <span id="z-range-p" style="width: 2em; display: inline-block"></span>
+          <input id="z-range" type="range" min="-100" max="100" value="0"
+          step="1" / >
+        </div>
         <script>
-          document.getElementById("z-range").oninput = () => {
-            const { value } = document.getElementById("z-range");
-            document.getElementById("z-range-p").innerHTML = value;
+          function redraw(quickLookFlag = false) {
+            const { value: x } = document.getElementById("x-range"),
+              { value: y } = document.getElementById("y-range"),
+              { value: z } = document.getElementById("z-range");
+
+            redrawCanvas({ column: "z", value: parseInt(z) }, quickLookFlag);
+          }
+
+          ["x", "y", "z"].map((c) => {
+            document.getElementById(c + "-range").oninput = () => {
+              const { value } = document.getElementById(c + "-range");
+              document.getElementById(c + "-range-p").innerHTML = value;
+
+              redraw(true);
+            };
+          });
+
+          document.getElementById("x-range").onchange = () => {
+            redraw();
+          };
+          document.getElementById("y-range").onchange = () => {
+            redraw();
           };
           document.getElementById("z-range").onchange = () => {
-            const { value } = document.getElementById("z-range");
-            myCanvas(2, parseInt(value));
+            redraw();
           };
         </script>
       </div>
+
       <div>
-        <canvas
-          id="myCanvas"
-          width="600"
-          height="600"
-          style="border: 1px solid #000000"
-        >
-        </canvas>
+        <canvas id="x-canvas" width="500" height="400"></canvas>
+        <canvas id="y-canvas" width="500" height="400"></canvas>
+        <canvas id="z-canvas" width="500" height="400"></canvas>
+        <script src="/src/drawCanvas.js"></script>
       </div>
-      <script src="src/myCanvas.js"></script>
     </div>
 
     <script>
