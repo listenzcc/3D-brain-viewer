@@ -71,6 +71,7 @@ def fetch_files():
     df = files.copy()
     for col in df.columns:
         df[col] = df[col].map(str)
+    df['idx'] = df.index
     return df2list(df)
 
 
@@ -97,6 +98,16 @@ def fetch_template_dense():
 
 @app.route('/fetch/overlay_dense.json')
 def fetch_overlay_dense():
+    args = flask.request.args
+    idx = args.get('idx', None)
+
+    if idx is None:
+        path = nii.iloc[0]['pathlib']
+    else:
+        path = files.loc[int(idx), 'pathlib']
+
+    img2 = MRIImg(path)
+
     img1.fill_from(img2)
     df = img1.df.query('filled_value > 3')[
         ['x', 'y', 'z', 'filled_value']].copy()

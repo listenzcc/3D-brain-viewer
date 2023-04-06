@@ -25,6 +25,7 @@ const Global = Object.assign(
     date: new Date(),
     templateDense: undefined,
     overlayDense: undefined,
+    overlayDensePath: undefined,
   }
 );
 
@@ -55,8 +56,6 @@ Global.reportGlobal = () => {
       Global.overlayDense = mkDense(raw);
       Global.overlayDense.map((d) => (d[3] /= 10.0));
       console.log("Global.overlay_dense is updated.");
-      // redrawCanvas({ column: "z", value: 0 });
-      // redrawCanvas({ x: 0, y: 0, z: 0 });
       redraw();
     });
   });
@@ -64,6 +63,7 @@ Global.reportGlobal = () => {
 
 // %% ---- 2023-04-04 ------------------------
 // Pending
+const colorScheme = d3.schemeCategory10;
 
 // %% ---- 2023-04-04 ------------------------
 // Pending

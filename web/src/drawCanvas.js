@@ -1,3 +1,18 @@
+const canvasOptions = {
+  pixelRatio: 2,
+  heatMap: d3.scaleLinear().domain([3, 6]).range(["red", "white"]),
+  colorMap: d3.scaleLinear().domain([1, 100]).range(["gray", "white"]),
+  strokeStyle: "cyan",
+  x: undefined,
+  y: undefined,
+  z: undefined,
+  strokeStyles: {
+    x: colorScheme[0],
+    y: colorScheme[1],
+    z: colorScheme[2],
+  },
+};
+
 /**
  * Convert the dense to slice points.
  * @param {Array} dense The very big array of the MRI point cloud.
@@ -14,8 +29,10 @@ function dense2slice(dense, filterColumn, quickLookFlag) {
     valueIdx = columns.indexOf("v"),
     filtered = dense.filter((d) => d[columnIdx] === columnValue);
 
+  // Only use the 2000 points with the smallest values,
+  // it almost draw the outline of the slice,
+  // the purpose of the shrinking is to speed up the drawing during rapid processing.
   if (quickLookFlag) {
-    // d3.shuffle(filtered);
     filtered.sort((a, b) => a[valueIdx] - b[valueIdx]);
     filtered = filtered.slice(0, 2000);
   }
@@ -52,29 +69,32 @@ function refreshContext(id) {
   return ctx;
 }
 
-const canvasOptions = {
-  pixelRatio: 2,
-  heatMap: d3.scaleLinear().domain([3, 6]).range(["red", "white"]),
-  colorMap: d3.scaleLinear().domain([1, 100]).range(["gray", "white"]),
-  strokeStyle: "cyan",
-};
-
-function redrawCanvas(point, quickLookFlag) {
-  const { pixelRatio, heatMap, colorMap, strokeStyle } = canvasOptions,
+function redrawCanvas(point, quickLookFlag, forceRedrawXYZ) {
+  const { pixelRatio, heatMap, colorMap, strokeStyle, strokeStyles } =
+      canvasOptions,
     { templateDense, overlayDense } = Global;
 
+  // If no template is loaded, draw nothing
   if (!templateDense) {
     console.warn(
-      "Can not render the canvas since the templateDense is undefined."
+      "Can not render the canvas since the templateDense is not loaded."
     );
     return;
   }
 
-  // console.log(point);
+  const selectedPoint = overlayDense.filter(
+    (d) => d[0] === point.x && d[1] === point.y && d[2] === point.z
+  );
 
   var filterColumn, ctx, slice, sliceOverlay;
 
   ["x", "y", "z"].map((column) => {
+    // If the current slice is correct, doing nothing.
+    if (!forceRedrawXYZ & (canvasOptions[column] === point[column])) {
+      console.log(`Not redraw the ${column} since the value is not changed`);
+      return;
+    }
+
     filterColumn = { column, value: point[column] };
 
     slice = dense2slice(
@@ -102,7 +122,7 @@ function redrawCanvas(point, quickLookFlag) {
           .range([cWidth, cWidth + extY[1] * pixelRatio]);
 
       // Draw the bounding box
-      ctx.strokeStyle = strokeStyle;
+      ctx.strokeStyle = strokeStyles.x;
       ctx.strokeRect(
         scaleWidth(extY[0]),
         scaleHeight(extZ[1]),
@@ -110,11 +130,13 @@ function redrawCanvas(point, quickLookFlag) {
         Math.abs(scaleHeight(extZ[1]) - scaleHeight(extZ[0])) + pixelRatio
       );
 
+      ctx.strokeStyle = strokeStyles.z;
       ctx.beginPath(),
         ctx.moveTo(0, scaleHeight(point["z"])),
         ctx.lineTo(width, scaleHeight(point["z"])),
         ctx.stroke();
 
+      ctx.strokeStyle = strokeStyles.y;
       ctx.beginPath(),
         ctx.moveTo(scaleWidth(point["y"]), 0),
         ctx.lineTo(scaleWidth(point["y"]), height),
@@ -133,7 +155,7 @@ function redrawCanvas(point, quickLookFlag) {
       });
 
       // Draw the center marker
-      ctx.strokeStyle = strokeStyle;
+      ctx.strokeStyle = strokeStyles.x;
       ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
     }
 
@@ -149,7 +171,7 @@ function redrawCanvas(point, quickLookFlag) {
           .range([cWidth, cWidth + extX[1] * pixelRatio]);
 
       // Draw the bounding box
-      ctx.strokeStyle = strokeStyle;
+      ctx.strokeStyle = strokeStyles.y;
       ctx.strokeRect(
         scaleWidth(extX[0]),
         scaleHeight(extZ[1]),
@@ -157,11 +179,13 @@ function redrawCanvas(point, quickLookFlag) {
         Math.abs(scaleHeight(extZ[1]) - scaleHeight(extZ[0])) + pixelRatio
       );
 
+      ctx.strokeStyle = strokeStyles.z;
       ctx.beginPath(),
         ctx.moveTo(0, scaleHeight(point["z"])),
         ctx.lineTo(width, scaleHeight(point["z"])),
         ctx.stroke();
 
+      ctx.strokeStyle = strokeStyles.x;
       ctx.beginPath(),
         ctx.moveTo(scaleWidth(point["x"]), 0),
         ctx.lineTo(scaleWidth(point["x"]), height),
@@ -180,7 +204,7 @@ function redrawCanvas(point, quickLookFlag) {
       });
 
       // Draw the center marker
-      ctx.strokeStyle = strokeStyle;
+      ctx.strokeStyle = strokeStyles.y;
       ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
     }
 
@@ -196,7 +220,7 @@ function redrawCanvas(point, quickLookFlag) {
           .range([cWidth, cWidth + extY[1] * pixelRatio]);
 
       // Draw the bounding box
-      ctx.strokeStyle = strokeStyle;
+      ctx.strokeStyle = strokeStyles.z;
       ctx.strokeRect(
         scaleWidth(extY[0]),
         scaleHeight(extX[1]),
@@ -204,11 +228,13 @@ function redrawCanvas(point, quickLookFlag) {
         Math.abs(scaleHeight(extX[1]) - scaleHeight(extX[0])) + pixelRatio
       );
 
+      ctx.strokeStyle = strokeStyles.x;
       ctx.beginPath(),
         ctx.moveTo(0, scaleHeight(point["x"])),
         ctx.lineTo(width, scaleHeight(point["x"])),
         ctx.stroke();
 
+      ctx.strokeStyle = strokeStyles.y;
       ctx.beginPath(),
         ctx.moveTo(scaleWidth(point["y"]), 0),
         ctx.lineTo(scaleWidth(point["y"]), height),
@@ -227,10 +253,15 @@ function redrawCanvas(point, quickLookFlag) {
       });
 
       // Draw the center marker
-      ctx.strokeStyle = strokeStyle;
+      ctx.strokeStyle = strokeStyles.z;
       ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
     }
   });
+
+  // Update the x, y and z attributes in canvasOptions
+  Object.assign(canvasOptions, point);
+
+  return selectedPoint;
 }
 
 function redrawCanvas1(filterColumn, quickLookFlag = false) {

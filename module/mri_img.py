@@ -27,7 +27,7 @@ class MRIImg(object):
         Init the MRI Image object with given path,
         the path must be read by the nibabel.load.
         '''
-        self.path = path
+        self.path = Path(path)
         self.read_file()
         self.match_ijk_xyz_space()
         LOGGER.debug('Created image %s', self.path)

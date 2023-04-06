@@ -25,7 +25,7 @@
     }
 
     canvas {
-      border: 2px solid #492121;
+      border: 2px solid #ebe8e8;
     }
   </style>
 </head>
@@ -35,54 +35,79 @@
 
   <div>
     <div id="files-container"></div>
+
+    <div id="file-selector-container">
+    </div>
+
     <script src="/src/updateFiles.js"></script>
   </div>
 
   <div>
     <div>
       <div>
-        <span>Slice X (mm): </span>
-        <span id="x-range-p" style="width: 2em; display: inline-block">0</span>
+        <span id="x-range-p" style="width: 8em; display: inline-block">--</span>
         <input id="x-range" type="range" min="-100" max="100" value="0" step="1" />
       </div>
       <div>
-        <span>Slice Y (mm): </span>
-        <span id="y-range-p" style="width: 2em; display: inline-block">0</span>
+        <span id="y-range-p" style="width: 8em; display: inline-block">--</span>
         <input id="y-range" type="range" min="-100" max="100" value="0" step="1" />
       </div>
       <div>
-        <span>Slice Z (mm): </span>
-        <span id="z-range-p" style="width: 2em; display: inline-block">0</span>
+        <span id="z-range-p" style="width: 8em; display: inline-block">--</span>
         <input id="z-range" type="range" min="-100" max="100" value="0" step="1" />
       </div>
+      <div>
+        <span id="current-point"> -- </span>
+      </div>
       <script>
-        function redraw(quickLookFlag = false) {
+        function redraw(quickLookFlag = false, forceRedrawXYZ = true) {
           const { value: x } = document.getElementById("x-range"),
             { value: y } = document.getElementById("y-range"),
             { value: z } = document.getElementById("z-range");
 
-          redrawCanvas(
+          document.getElementById("x-range-p").innerHTML = `Slice x: ${x} mm`;
+          document.getElementById("y-range-p").innerHTML = `Slice y: ${y} mm`;
+          document.getElementById("z-range-p").innerHTML = `Slice z: ${z} mm`;
+
+          document.getElementById("x-range-p").style.color = colorScheme[0];
+          document.getElementById("y-range-p").style.color = colorScheme[1];
+          document.getElementById("z-range-p").style.color = colorScheme[2];
+
+          document.getElementById('current-point').innerHTML = `N.A., x=${x}, y=${y}, z=${z}`;
+
+          var p = redrawCanvas(
             { x: parseInt(x), y: parseInt(y), z: parseInt(z) },
-            quickLookFlag
-          );
+            quickLookFlag,
+            forceRedrawXYZ
+          )[0];
+
+          if (p) {
+            document.getElementById('current-point').innerHTML = `${p[3]}, x=${p[0]}, y=${p[1]}, z=${p[2]}`;
+          }
+
         }
 
         ["x", "y", "z"].map((c) => {
           document.getElementById(c + "-range").oninput = () => {
-            const { value } = document.getElementById(c + "-range");
-            document.getElementById(c + "-range-p").innerHTML = value;
-
-            redraw(true);
+            // On dragging the slider,
+            // redraw with without force
+            redraw(true, false);
           };
         });
 
         document.getElementById("x-range").onchange = () => {
+          // Dragging stops,
+          // redraw fully
           redraw();
         };
         document.getElementById("y-range").onchange = () => {
+          // Dragging stops,
+          // redraw fully
           redraw();
         };
         document.getElementById("z-range").onchange = () => {
+          // Dragging stops,
+          // redraw fully
           redraw();
         };
       </script>
@@ -93,6 +118,110 @@
       <canvas id="y-canvas" width="500" height="400"></canvas>
       <canvas id="z-canvas" width="500" height="400"></canvas>
       <script src="/src/drawCanvas.js"></script>
+
+      <script>
+        // X canvas
+        document.getElementById('x-canvas').onmousemove = (e) => {
+          if (!e.altKey) return
+
+          const { pixelRatio } = canvasOptions,
+            { cWidth, cHeight } = e.target.getContext('2d');
+
+          var y, z
+
+          y = (e.offsetX - cWidth) / pixelRatio;
+          z = (cHeight - e.offsetY) / pixelRatio;
+
+          document.getElementById('y-range').value = y;
+          document.getElementById('z-range').value = z;
+
+          // Simple drawing
+          redraw(true, false)
+        }
+
+        document.getElementById('x-canvas').onclick = (e) => {
+          const { pixelRatio } = canvasOptions,
+            { cWidth, cHeight } = e.target.getContext('2d');
+
+          var y, z
+
+          y = (e.offsetX - cWidth) / pixelRatio;
+          z = (cHeight - e.offsetY) / pixelRatio;
+
+          document.getElementById('y-range').value = y;
+          document.getElementById('z-range').value = z;
+          redraw();
+        }
+
+        // Y canvas
+        document.getElementById('y-canvas').onmousemove = (e) => {
+          if (!e.altKey) return
+
+          const { pixelRatio } = canvasOptions,
+            { cWidth, cHeight } = e.target.getContext('2d');
+
+          var x, z
+
+          x = (e.offsetX - cWidth) / pixelRatio;
+          z = (cHeight - e.offsetY) / pixelRatio;
+
+          document.getElementById('x-range').value = x;
+          document.getElementById('z-range').value = z;
+
+          // Simple drawing
+          redraw(true, false)
+        }
+
+        document.getElementById('y-canvas').onclick = (e) => {
+          const { pixelRatio } = canvasOptions,
+            { cWidth, cHeight } = e.target.getContext('2d');
+
+          var x, z
+
+          x = (e.offsetX - cWidth) / pixelRatio;
+          z = (cHeight - e.offsetY) / pixelRatio;
+
+          document.getElementById('x-range').value = x;
+          document.getElementById('z-range').value = z;
+          redraw();
+        }
+
+        // Z canvas
+
+        document.getElementById('z-canvas').onmousemove = (e) => {
+          if (!e.altKey) return
+
+          const { pixelRatio } = canvasOptions,
+            { cWidth, cHeight } = e.target.getContext('2d');
+
+          var x, y
+
+          y = (e.offsetX - cWidth) / pixelRatio;
+          x = (cHeight - e.offsetY) / pixelRatio;
+
+          document.getElementById('x-range').value = x;
+          document.getElementById('y-range').value = y;
+
+          // Simple drawing
+          redraw(true, false);
+        }
+
+        document.getElementById('z-canvas').onclick = (e) => {
+          const { pixelRatio } = canvasOptions,
+            { cWidth, cHeight } = e.target.getContext('2d');
+
+          var x, y
+
+          y = (e.offsetX - cWidth) / pixelRatio;
+          x = (cHeight - e.offsetY) / pixelRatio;
+
+          document.getElementById('x-range').value = x;
+          document.getElementById('y-range').value = y;
+          redraw();
+        }
+
+      </script>
+
     </div>
   </div>
 
