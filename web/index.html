@@ -1,105 +1,105 @@
 <html>
-  <head>
-    <title>Title</title>
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
 
-    <script src="/src/initResource.js"></script>
+<head>
+  <title>Title</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-      }
+  <script src="/src/initResource.js"></script>
 
-      div {
-        margin: 4px;
-        padding: 4px;
-      }
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
 
-      div#files-container {
-        width: 12in;
-        max-height: 10em;
-        overflow-y: scroll;
-      }
+    div {
+      margin: 4px;
+      padding: 4px;
+    }
 
-      canvas {
-        border: 2px solid #492121;
-      }
-    </style>
-  </head>
+    div#files-container {
+      width: 12in;
+      max-height: 10em;
+      overflow-y: scroll;
+    }
 
-  <body>
-    <h1>Title</h1>
+    canvas {
+      border: 2px solid #492121;
+    }
+  </style>
+</head>
 
+<body>
+  <h1>Title</h1>
+
+  <div>
+    <div id="files-container"></div>
+    <script src="/src/updateFiles.js"></script>
+  </div>
+
+  <div>
     <div>
-      <div id="files-container"></div>
-      <script src="/src/updateFiles.js"></script>
+      <div>
+        <span>Slice X (mm): </span>
+        <span id="x-range-p" style="width: 2em; display: inline-block">0</span>
+        <input id="x-range" type="range" min="-100" max="100" value="0" step="1" />
+      </div>
+      <div>
+        <span>Slice Y (mm): </span>
+        <span id="y-range-p" style="width: 2em; display: inline-block">0</span>
+        <input id="y-range" type="range" min="-100" max="100" value="0" step="1" />
+      </div>
+      <div>
+        <span>Slice Z (mm): </span>
+        <span id="z-range-p" style="width: 2em; display: inline-block">0</span>
+        <input id="z-range" type="range" min="-100" max="100" value="0" step="1" />
+      </div>
+      <script>
+        function redraw(quickLookFlag = false) {
+          const { value: x } = document.getElementById("x-range"),
+            { value: y } = document.getElementById("y-range"),
+            { value: z } = document.getElementById("z-range");
+
+          redrawCanvas(
+            { x: parseInt(x), y: parseInt(y), z: parseInt(z) },
+            quickLookFlag
+          );
+        }
+
+        ["x", "y", "z"].map((c) => {
+          document.getElementById(c + "-range").oninput = () => {
+            const { value } = document.getElementById(c + "-range");
+            document.getElementById(c + "-range-p").innerHTML = value;
+
+            redraw(true);
+          };
+        });
+
+        document.getElementById("x-range").onchange = () => {
+          redraw();
+        };
+        document.getElementById("y-range").onchange = () => {
+          redraw();
+        };
+        document.getElementById("z-range").onchange = () => {
+          redraw();
+        };
+      </script>
     </div>
 
     <div>
-      <div>
-        <div>
-          <span>Slice X (mm): </span>
-          <span id="x-range-p" style="width: 2em; display: inline-block"></span>
-          <input id="x-range" type="range" min="-100" max="100" value="0"
-          step="1" / >
-        </div>
-        <div>
-          <span>Slice Y (mm): </span>
-          <span id="y-range-p" style="width: 2em; display: inline-block"></span>
-          <input id="y-range" type="range" min="-100" max="100" value="0"
-          step="1" / >
-        </div>
-        <div>
-          <span>Slice Z (mm): </span>
-          <span id="z-range-p" style="width: 2em; display: inline-block"></span>
-          <input id="z-range" type="range" min="-100" max="100" value="0"
-          step="1" / >
-        </div>
-        <script>
-          function redraw(quickLookFlag = false) {
-            const { value: x } = document.getElementById("x-range"),
-              { value: y } = document.getElementById("y-range"),
-              { value: z } = document.getElementById("z-range");
-
-            redrawCanvas({ column: "z", value: parseInt(z) }, quickLookFlag);
-          }
-
-          ["x", "y", "z"].map((c) => {
-            document.getElementById(c + "-range").oninput = () => {
-              const { value } = document.getElementById(c + "-range");
-              document.getElementById(c + "-range-p").innerHTML = value;
-
-              redraw(true);
-            };
-          });
-
-          document.getElementById("x-range").onchange = () => {
-            redraw();
-          };
-          document.getElementById("y-range").onchange = () => {
-            redraw();
-          };
-          document.getElementById("z-range").onchange = () => {
-            redraw();
-          };
-        </script>
-      </div>
-
-      <div>
-        <canvas id="x-canvas" width="500" height="400"></canvas>
-        <canvas id="y-canvas" width="500" height="400"></canvas>
-        <canvas id="z-canvas" width="500" height="400"></canvas>
-        <script src="/src/drawCanvas.js"></script>
-      </div>
+      <canvas id="x-canvas" width="500" height="400"></canvas>
+      <canvas id="y-canvas" width="500" height="400"></canvas>
+      <canvas id="z-canvas" width="500" height="400"></canvas>
+      <script src="/src/drawCanvas.js"></script>
     </div>
+  </div>
 
-    <script>
+  <script>
       // console.log(Plot)
       // document.body.append(Plot.plot(options));
-    </script>
-  </body>
+  </script>
+</body>
+
 </html>

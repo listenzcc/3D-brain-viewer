@@ -55,7 +55,9 @@ Global.reportGlobal = () => {
       Global.overlayDense = mkDense(raw);
       Global.overlayDense.map((d) => (d[3] /= 10.0));
       console.log("Global.overlay_dense is updated.");
-      redrawCanvas({ column: "z", value: 0 });
+      // redrawCanvas({ column: "z", value: 0 });
+      // redrawCanvas({ x: 0, y: 0, z: 0 });
+      redraw();
     });
   });
 }
