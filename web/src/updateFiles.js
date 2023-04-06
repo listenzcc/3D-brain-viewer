@@ -23,6 +23,8 @@
           Global.overlayDense = mkDense(raw);
           Global.overlayDense.map((d) => (d[3] /= 10.0));
           Global.overlayDensePath = pathlib;
+          // Restore the templateDense, since the instance is rotated.
+          Global.templateDense = Global.templateDenseSaved;
           console.log("Global.overlay_dense is updated to " + pathlib);
           redraw();
         });

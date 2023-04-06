@@ -3,7 +3,6 @@
 <head>
   <title>Title</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-
   <script src="/src/initResource.js"></script>
 
   <style>
@@ -110,6 +109,17 @@
           // redraw fully
           redraw();
         };
+      </script>
+    </div>
+
+    <div>
+      <span>Rotation</span>
+      <input type="checkbox" id="checkbox-1" />
+      <script>
+        document.getElementById("checkbox-1").addEventListener("change", (e) => {
+          console.log(e, e.target, e.target.value)
+          rotate(5)
+        });
       </script>
     </div>
 
