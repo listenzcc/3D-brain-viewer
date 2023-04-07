@@ -70,196 +70,233 @@ function refreshContext(id) {
   return ctx;
 }
 
+function prepareRender(columnName, columnValue, quickLookFlag) {
+  var filterColumn = { column: columnName, value: columnValue },
+    slice = dense2slice(Global.templateDense, filterColumn, quickLookFlag),
+    sliceOverlay = dense2slice(
+      Global.overlayDense,
+      filterColumn,
+      quickLookFlag
+    ),
+    extX = d3.extent(slice, (d) => d.x),
+    extY = d3.extent(slice, (d) => d.y),
+    extZ = d3.extent(slice, (d) => d.z),
+    ctx = refreshContext(columnName + "-canvas");
+
+  return { slice, sliceOverlay, extX, extY, extZ, ctx };
+}
+
 function redrawCanvas(point, quickLookFlag, forceRedrawXYZ) {
-  const { pixelRatio, heatMap, colorMap, strokeStyle, strokeStyles } =
-      canvasOptions,
-    { templateDense, overlayDense } = Global;
+  const { pixelRatio, heatMap, colorMap, strokeStyles } = canvasOptions;
+  // { templateDense, overlayDense } = Global;
 
   // If no template is loaded, draw nothing
-  if (!templateDense) {
+  if (!Global.templateDense) {
     console.warn(
       "Can not render the canvas since the templateDense is not loaded."
     );
     return;
   }
 
-  const selectedPoint = overlayDense.filter(
+  const selectedPoint = Global.overlayDense.filter(
     (d) =>
       Math.abs(d[0] - point.x) < 0.5 &&
       Math.abs(d[1] - point.y) < 0.5 &&
       Math.abs(d[2] - point.z) < 0.5
   );
 
-  var filterColumn, ctx, slice, sliceOverlay;
+  /**
+   * Render the X slice
+   */
+  function renderX() {
+    var startDate = new Date(),
+      { slice, sliceOverlay, extX, extY, extZ, ctx } = prepareRender(
+        "x",
+        point["x"],
+        quickLookFlag
+      ),
+      { cWidth, cHeight, width, height } = ctx;
 
-  ["x", "y", "z"].map((column) => {
-    // If the current slice is correct, doing nothing.
-    if (!forceRedrawXYZ & (canvasOptions[column] === point[column])) {
-      console.log(`Not redraw the ${column} since the value is not changed`);
-      return;
-    }
+    var scaleHeight = d3
+        .scaleLinear()
+        .domain([0, -extZ[0]])
+        .range([cHeight, cHeight + extZ[0] * pixelRatio]),
+      scaleWidth = d3
+        .scaleLinear()
+        .domain([0, extY[1]])
+        .range([cWidth, cWidth + extY[1] * pixelRatio]);
 
-    filterColumn = { column, value: point[column] };
-
-    slice = dense2slice(
-      templateDense,
-      filterColumn,
-      quickLookFlag // ? [0, 10] : undefined
+    // Draw the bounding box
+    ctx.strokeStyle = strokeStyles.x;
+    ctx.strokeRect(
+      scaleWidth(extY[0]),
+      scaleHeight(extZ[1]),
+      Math.abs(scaleWidth(extY[1]) - scaleWidth(extY[0])) + pixelRatio,
+      Math.abs(scaleHeight(extZ[1]) - scaleHeight(extZ[0])) + pixelRatio
     );
-    sliceOverlay = dense2slice(overlayDense, filterColumn, quickLookFlag);
 
-    ctx = refreshContext(`${column}-canvas`);
-    var { cWidth, cHeight, width, height } = ctx,
-      extX = d3.extent(slice, (d) => d.x),
-      extY = d3.extent(slice, (d) => d.y),
-      extZ = d3.extent(slice, (d) => d.z);
+    ctx.strokeStyle = strokeStyles.z;
+    ctx.beginPath(),
+      ctx.moveTo(0, scaleHeight(point["z"])),
+      ctx.lineTo(width, scaleHeight(point["z"])),
+      ctx.stroke();
 
-    // X slice
-    if (column === "x") {
-      var scaleHeight = d3
-          .scaleLinear()
-          .domain([0, -extZ[0]])
-          .range([cHeight, cHeight + extZ[0] * pixelRatio]),
-        scaleWidth = d3
-          .scaleLinear()
-          .domain([0, extY[1]])
-          .range([cWidth, cWidth + extY[1] * pixelRatio]);
+    ctx.strokeStyle = strokeStyles.y;
+    ctx.beginPath(),
+      ctx.moveTo(scaleWidth(point["y"]), 0),
+      ctx.lineTo(scaleWidth(point["y"]), height),
+      ctx.stroke();
 
-      // Draw the bounding box
-      ctx.strokeStyle = strokeStyles.x;
-      ctx.strokeRect(
-        scaleWidth(extY[0]),
-        scaleHeight(extZ[1]),
-        Math.abs(scaleWidth(extY[1]) - scaleWidth(extY[0])) + pixelRatio,
-        Math.abs(scaleHeight(extZ[1]) - scaleHeight(extZ[0])) + pixelRatio
-      );
+    // Draw the template
+    slice.map(({ x, y, z, v }) => {
+      ctx.fillStyle = colorMap(v);
+      ctx.fillRect(scaleWidth(y), scaleHeight(z), pixelRatio, pixelRatio);
+    });
 
-      ctx.strokeStyle = strokeStyles.z;
-      ctx.beginPath(),
-        ctx.moveTo(0, scaleHeight(point["z"])),
-        ctx.lineTo(width, scaleHeight(point["z"])),
-        ctx.stroke();
+    // Draw the overlay
+    sliceOverlay.map(({ x, y, z, v }) => {
+      ctx.fillStyle = heatMap(v);
+      ctx.fillRect(scaleWidth(y), scaleHeight(z), pixelRatio, pixelRatio);
+    });
 
-      ctx.strokeStyle = strokeStyles.y;
-      ctx.beginPath(),
-        ctx.moveTo(scaleWidth(point["y"]), 0),
-        ctx.lineTo(scaleWidth(point["y"]), height),
-        ctx.stroke();
+    // Draw the center marker
+    ctx.strokeStyle = strokeStyles.x;
+    ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
+    console.log(`Render x slice costs ${new Date() - startDate} milliseconds`);
+  }
 
-      // Draw the template
-      slice.map(({ x, y, z, v }) => {
-        ctx.fillStyle = colorMap(v);
-        ctx.fillRect(scaleWidth(y), scaleHeight(z), pixelRatio, pixelRatio);
-      });
+  /**
+   * Render the Y slice
+   */
+  function renderY() {
+    var startDate = new Date(),
+      { slice, sliceOverlay, extX, extY, extZ, ctx } = prepareRender(
+        "y",
+        point["y"],
+        quickLookFlag
+      ),
+      { cWidth, cHeight, width, height } = ctx;
 
-      // Draw the overlay
-      sliceOverlay.map(({ x, y, z, v }) => {
-        ctx.fillStyle = heatMap(v);
-        ctx.fillRect(scaleWidth(y), scaleHeight(z), pixelRatio, pixelRatio);
-      });
+    var scaleHeight = d3
+        .scaleLinear()
+        .domain([0, -extZ[0]])
+        .range([cHeight, cHeight + extZ[0] * pixelRatio]),
+      scaleWidth = d3
+        .scaleLinear()
+        .domain([0, extX[1]])
+        .range([cWidth, cWidth + extX[1] * pixelRatio]);
 
-      // Draw the center marker
-      ctx.strokeStyle = strokeStyles.x;
-      ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
-    }
+    // Draw the bounding box
+    ctx.strokeStyle = strokeStyles.y;
+    ctx.strokeRect(
+      scaleWidth(extX[0]),
+      scaleHeight(extZ[1]),
+      Math.abs(scaleWidth(extX[1]) - scaleWidth(extX[0])) + pixelRatio,
+      Math.abs(scaleHeight(extZ[1]) - scaleHeight(extZ[0])) + pixelRatio
+    );
 
-    // Y slice
-    if (column === "y") {
-      var scaleHeight = d3
-          .scaleLinear()
-          .domain([0, -extZ[0]])
-          .range([cHeight, cHeight + extZ[0] * pixelRatio]),
-        scaleWidth = d3
-          .scaleLinear()
-          .domain([0, extX[1]])
-          .range([cWidth, cWidth + extX[1] * pixelRatio]);
+    ctx.strokeStyle = strokeStyles.z;
+    ctx.beginPath(),
+      ctx.moveTo(0, scaleHeight(point["z"])),
+      ctx.lineTo(width, scaleHeight(point["z"])),
+      ctx.stroke();
 
-      // Draw the bounding box
-      ctx.strokeStyle = strokeStyles.y;
-      ctx.strokeRect(
-        scaleWidth(extX[0]),
-        scaleHeight(extZ[1]),
-        Math.abs(scaleWidth(extX[1]) - scaleWidth(extX[0])) + pixelRatio,
-        Math.abs(scaleHeight(extZ[1]) - scaleHeight(extZ[0])) + pixelRatio
-      );
+    ctx.strokeStyle = strokeStyles.x;
+    ctx.beginPath(),
+      ctx.moveTo(scaleWidth(point["x"]), 0),
+      ctx.lineTo(scaleWidth(point["x"]), height),
+      ctx.stroke();
 
-      ctx.strokeStyle = strokeStyles.z;
-      ctx.beginPath(),
-        ctx.moveTo(0, scaleHeight(point["z"])),
-        ctx.lineTo(width, scaleHeight(point["z"])),
-        ctx.stroke();
+    // Draw the template
+    slice.map(({ x, y, z, v }) => {
+      ctx.fillStyle = colorMap(v);
+      ctx.fillRect(scaleWidth(x), scaleHeight(z), pixelRatio, pixelRatio);
+    });
 
-      ctx.strokeStyle = strokeStyles.x;
-      ctx.beginPath(),
-        ctx.moveTo(scaleWidth(point["x"]), 0),
-        ctx.lineTo(scaleWidth(point["x"]), height),
-        ctx.stroke();
+    // Draw the overlay
+    sliceOverlay.map(({ x, y, z, v }) => {
+      ctx.fillStyle = heatMap(v);
+      ctx.fillRect(scaleWidth(x), scaleHeight(z), pixelRatio, pixelRatio);
+    });
 
-      // Draw the template
-      slice.map(({ x, y, z, v }) => {
-        ctx.fillStyle = colorMap(v);
-        ctx.fillRect(scaleWidth(x), scaleHeight(z), pixelRatio, pixelRatio);
-      });
+    // Draw the center marker
+    ctx.strokeStyle = strokeStyles.y;
+    ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
+    console.log(`Render y slice costs ${new Date() - startDate} milliseconds`);
+  }
 
-      // Draw the overlay
-      sliceOverlay.map(({ x, y, z, v }) => {
-        ctx.fillStyle = heatMap(v);
-        ctx.fillRect(scaleWidth(x), scaleHeight(z), pixelRatio, pixelRatio);
-      });
+  /**
+   * Render the Z slice
+   */
+  function renderZ() {
+    var startDate = new Date(),
+      { slice, sliceOverlay, extX, extY, extZ, ctx } = prepareRender(
+        "z",
+        point["z"],
+        quickLookFlag
+      ),
+      { cWidth, cHeight, width, height } = ctx;
 
-      // Draw the center marker
-      ctx.strokeStyle = strokeStyles.y;
-      ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
-    }
+    var scaleHeight = d3
+        .scaleLinear()
+        .domain([0, -extX[0]])
+        .range([cHeight, cHeight + extX[0] * pixelRatio]),
+      scaleWidth = d3
+        .scaleLinear()
+        .domain([0, extY[1]])
+        .range([cWidth, cWidth + extY[1] * pixelRatio]);
 
-    // Z slice
-    if (column === "z") {
-      var scaleHeight = d3
-          .scaleLinear()
-          .domain([0, -extX[0]])
-          .range([cHeight, cHeight + extX[0] * pixelRatio]),
-        scaleWidth = d3
-          .scaleLinear()
-          .domain([0, extY[1]])
-          .range([cWidth, cWidth + extY[1] * pixelRatio]);
+    // Draw the bounding box
+    ctx.strokeStyle = strokeStyles.z;
+    ctx.strokeRect(
+      scaleWidth(extY[0]),
+      scaleHeight(extX[1]),
+      Math.abs(scaleWidth(extY[1]) - scaleWidth(extY[0])) + pixelRatio,
+      Math.abs(scaleHeight(extX[1]) - scaleHeight(extX[0])) + pixelRatio
+    );
 
-      // Draw the bounding box
-      ctx.strokeStyle = strokeStyles.z;
-      ctx.strokeRect(
-        scaleWidth(extY[0]),
-        scaleHeight(extX[1]),
-        Math.abs(scaleWidth(extY[1]) - scaleWidth(extY[0])) + pixelRatio,
-        Math.abs(scaleHeight(extX[1]) - scaleHeight(extX[0])) + pixelRatio
-      );
+    ctx.strokeStyle = strokeStyles.x;
+    ctx.beginPath(),
+      ctx.moveTo(0, scaleHeight(point["x"])),
+      ctx.lineTo(width, scaleHeight(point["x"])),
+      ctx.stroke();
 
-      ctx.strokeStyle = strokeStyles.x;
-      ctx.beginPath(),
-        ctx.moveTo(0, scaleHeight(point["x"])),
-        ctx.lineTo(width, scaleHeight(point["x"])),
-        ctx.stroke();
+    ctx.strokeStyle = strokeStyles.y;
+    ctx.beginPath(),
+      ctx.moveTo(scaleWidth(point["y"]), 0),
+      ctx.lineTo(scaleWidth(point["y"]), height),
+      ctx.stroke();
 
-      ctx.strokeStyle = strokeStyles.y;
-      ctx.beginPath(),
-        ctx.moveTo(scaleWidth(point["y"]), 0),
-        ctx.lineTo(scaleWidth(point["y"]), height),
-        ctx.stroke();
+    // Draw the template
+    slice.map(({ x, y, z, v }) => {
+      ctx.fillStyle = colorMap(v);
+      ctx.fillRect(scaleWidth(y), scaleHeight(x), pixelRatio, pixelRatio);
+    });
 
-      // Draw the template
-      slice.map(({ x, y, z, v }) => {
-        ctx.fillStyle = colorMap(v);
-        ctx.fillRect(scaleWidth(y), scaleHeight(x), pixelRatio, pixelRatio);
-      });
+    // Draw the overlay
+    sliceOverlay.map(({ x, y, z, v }) => {
+      ctx.fillStyle = heatMap(v);
+      ctx.fillRect(scaleWidth(y), scaleHeight(x), pixelRatio, pixelRatio);
+    });
 
-      // Draw the overlay
-      sliceOverlay.map(({ x, y, z, v }) => {
-        ctx.fillStyle = heatMap(v);
-        ctx.fillRect(scaleWidth(y), scaleHeight(x), pixelRatio, pixelRatio);
-      });
+    // Draw the center marker
+    ctx.strokeStyle = strokeStyles.z;
+    ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
+    console.log(`Render z slice costs ${new Date() - startDate} milliseconds`);
+  }
 
-      // Draw the center marker
-      ctx.strokeStyle = strokeStyles.z;
-      ctx.strokeRect(scaleWidth(0) - 5, scaleHeight(0) - 5, 10, 10);
-    }
+  requestAnimationFrame(() => {
+    ["x", "y", "z"].map((column) => {
+      // If the current slice is correct, doing nothing.
+      if (!forceRedrawXYZ & (canvasOptions[column] === point[column])) {
+        console.log(`Not redraw the ${column} since the value is not changed`);
+        return;
+      }
+
+      if (column === "x") new Promise(renderX);
+      if (column === "y") new Promise(renderY);
+      if (column === "z") new Promise(renderZ);
+    });
   });
 
   // Update the x, y and z attributes in canvasOptions

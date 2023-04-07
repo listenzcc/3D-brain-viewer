@@ -64,15 +64,19 @@
             { value: y } = document.getElementById("y-range"),
             { value: z } = document.getElementById("z-range");
 
-          document.getElementById("x-range-p").innerHTML = `Slice x: ${x} mm`;
-          document.getElementById("y-range-p").innerHTML = `Slice y: ${y} mm`;
-          document.getElementById("z-range-p").innerHTML = `Slice z: ${z} mm`;
+          const xs = parseFloat(x).toFixed(2),
+            ys = parseFloat(y).toFixed(2),
+            zs = parseFloat(z).toFixed(2)
+
+          document.getElementById("x-range-p").innerHTML = `Slice x: ${xs} mm`;
+          document.getElementById("y-range-p").innerHTML = `Slice y: ${ys} mm`;
+          document.getElementById("z-range-p").innerHTML = `Slice z: ${zs} mm`;
 
           document.getElementById("x-range-p").style.color = colorScheme[0];
           document.getElementById("y-range-p").style.color = colorScheme[1];
           document.getElementById("z-range-p").style.color = colorScheme[2];
 
-          document.getElementById('current-point').innerHTML = `N.A., x=${x}, y=${y}, z=${z}`;
+          document.getElementById('current-point').innerHTML = `N.A., x=${xs}, y=${ys}, z=${zs}`;
 
           var p = redrawCanvas(
             { x: parseInt(x), y: parseInt(y), z: parseInt(z) },
