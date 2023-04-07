@@ -69,6 +69,14 @@ const colorScheme = d3.schemeCategory10;
 
 // %% ---- 2023-04-04 ------------------------
 // Pending
+/**
+ * Rotate the dense with theta degrees,
+ * the map method is tested to be the most efficient way to compute the rotated x, y and z coordinates.
+ * The requestAnimationFrame is called to continue display,
+ * The #checkbox-1 checkbox toggles the display.
+ * @param {Float} theta Rotate the dense with theta degrees
+ * @returns
+ */
 function rotate(theta) {
   // If stops, redraw everything and break the loop.
   if (!document.getElementById("checkbox-1").checked) {
@@ -88,6 +96,23 @@ function rotate(theta) {
     a = x;
     b = y * cos + z * sin;
     c = -y * sin + z * cos;
+
+    x = a;
+    y = b;
+    z = c;
+
+    a = x * cos + z * sin;
+    b = y;
+    c = -x * sin + z * cos;
+
+    x = a;
+    y = b;
+    z = c;
+
+    a = x * cos + y * sin;
+    b = -x * sin + y * cos;
+    c = z;
+
     return [a, b, c, v];
   }
 

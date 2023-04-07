@@ -1,7 +1,10 @@
 # Very stable and pretty results
 
 - [Very stable and pretty results](#very-stable-and-pretty-results)
-  - [MRI watcher on the web](#mri-watcher-on-the-web)
+- [MRI 体积点云的旋转与渲染](#mri-体积点云的旋转与渲染)
+  - [数据规模](#数据规模)
+  - [旋转截面的实时渲染实现](#旋转截面的实时渲染实现)
+  - [附录：核心代码](#附录核心代码)
 - [Vedo 的体积点云计算](#vedo-的体积点云计算)
   - [Vedo 与致密点云](#vedo-与致密点云)
   - [大脑 MRI 的分层表面](#大脑-mri-的分层表面)
@@ -11,10 +14,176 @@
   - [实现代码](#实现代码)
 
 
-## MRI watcher on the web
+# MRI 体积点云的旋转与渲染
 
-![img1](doc/Snipaste_2023-04-06_17-12-48.png)
+体积数据的规模是表面面片数据的数十倍，导致框架设计困难，且渲染开销较大。本文使用坐标表示的方法实现 MRI 数据旋转截面的实时渲染，后端负责将点云数据及其坐标编辑成数据表的形式，而前端在一次性获取该数据表后独立完成旋转和渲染计算。
 
+本工程的渲染开销相当于用前端孱弱计算的能力来实时解算 4K 视频，性能表现大约为每秒 3 帧，这对于 CPU 来说已经不错了吧？又不是不能用。
+
+本文的开源代码可见我的 Github 仓库
+
+[https://github.com/listenzcc/3D-brain-viewer](https://github.com/listenzcc/3D-brain-viewer)
+
+---
+
+## 数据规模
+
+目前的 CV 模型往往是对物体的表面进行表达，但以 MRI 为代表的神经影像数据却是对体积中的每个点都进行记录和表达，这类数据往往具有相当大的规模。以 MRI 模板数据为例，它是具有体积的点云
+
+$$
+MRI \in R^{256 \times 256 \times 256}
+$$
+
+虽然每一个截面都只是 256 长宽的“小”图像，但整体规模却远远超过了表面面片的规模。所谓表面面片是用无数个小三角对大脑表面进行表达的最小单元。我们可以将大脑想象成地球，是由东、西两个半球合并围成的一个完整的球面，而东、西两个半球的交点构成一个平面上的圆，因此两个球面上的点与圆上的点具有一一对应的关系。因此，大脑（或地球）的表面面片与圆上的像素具有一一对应的关系，那么我们的表面面片规模不会超过任意“小”图像的规模
+
+$$
+Surface \in R^{256 \times 256 \times k}
+$$
+
+其中，$k \in [1, 2, \dots]$是定值，由大脑的褶皱情况来确定，褶皱越精细则该值越大，一般不会超过 10。可见体积数据的规模是表面面片数据的数十倍。
+
+## 旋转截面的实时渲染实现
+
+针对 MRI 数据的呈现一般采用沿坐标轴的竖直截面呈现方法，是将数据沿某个坐标轴切分为 256 长宽的“小”图像，这样操作的优点是计算量小，但缺点是视角固定。如果我们想呈现随机方向的截面，比如沿冠状位的轴向旋转 $30 \degree$ 的截面，那么传统方法就不再好用。方法失效的原因有两个
+
+- 旋转后的截面上点的位置与采样点不对应；
+- 旋转操作不再局限于单层，而是可能涉及全部体素，这导致计算量较大。
+
+【实时渲染的样例如下视频所示】
+
+本文使用坐标表示的方法实现 MRI 数据旋转截面的实时渲染，也就是说，后端负责将点云数据及其坐标编辑成数据表的形式，而前端在一次性获取该数据表后独立完成旋转和渲染计算。
+
+![Untitled](MRI%20%E4%BD%93%E7%A7%AF%E7%82%B9%E4%BA%91%E7%9A%84%E6%97%8B%E8%BD%AC%E4%B8%8E%E6%B8%B2%E6%9F%93%20915c0570c37a4a5095676fc017a395ce/Untitled.png)
+
+![Untitled](MRI%20%E4%BD%93%E7%A7%AF%E7%82%B9%E4%BA%91%E7%9A%84%E6%97%8B%E8%BD%AC%E4%B8%8E%E6%B8%B2%E6%9F%93%20915c0570c37a4a5095676fc017a395ce/Untitled%201.png)
+
+上图所示的数据表规模约为 9,400,000 个整数，即 9.4 M。作为对比，标准 4K 图像的像素数量为
+
+$$
+4096 \times 2160 \div 1024 \div 1024 \approx 8.4m
+$$
+
+可见，本工程的渲染开销相当于用前端孱弱计算的能力来实时解算 4K 视频，性能表现大约为每秒 3 帧，这对于 CPU 来说已经不错了吧？又不是不能用。由于全部渲染的开销较大，因此本工程考虑在实时交互时采用减小渲染点数量的方法提升交互效率。
+
+![Untitled](MRI%20%E4%BD%93%E7%A7%AF%E7%82%B9%E4%BA%91%E7%9A%84%E6%97%8B%E8%BD%AC%E4%B8%8E%E6%B8%B2%E6%9F%93%20915c0570c37a4a5095676fc017a395ce/Untitled%202.png)
+
+## 附录：核心代码
+
+在实时渲染过程中需要注意的是将渲染函数嵌入到 requestAnimationFrame 方法中，这样做的好处是将渲染时序交给浏览器去维护，开发者不再需要单独考虑顺序和异步的问题。
+
+```jsx
+/**
+ * Rotate the dense with theta degrees,
+ * the map method is tested to be the most efficient way to compute the rotated x, y and z coordinates.
+ * The requestAnimationFrame is called to continue display,
+ * The #checkbox-1 checkbox toggles the display.
+ * @param {Float} theta Rotate the dense with theta degrees
+ * @returns
+ */
+function rotate(theta) {
+  // If stops, redraw everything and break the loop.
+  if (!document.getElementById("checkbox-1").checked) {
+    redraw();
+    return;
+  }
+
+  const cos = Math.cos((theta / 180) * Math.PI),
+    sin = Math.sin((theta / 180) * Math.PI);
+
+  var x, y, z, a, b, c, v;
+
+  var start = new Date();
+
+  function _rot(d) {
+    (x = d[0]), (y = d[1]), (z = d[2]), (v = d[3]);
+    a = x;
+    b = y * cos + z * sin;
+    c = -y * sin + z * cos;
+
+    x = a;
+    y = b;
+    z = c;
+
+    a = x * cos + z * sin;
+    b = y;
+    c = -x * sin + z * cos;
+
+    x = a;
+    y = b;
+    z = c;
+
+    a = x * cos + y * sin;
+    b = -x * sin + y * cos;
+    c = z;
+
+    return [a, b, c, v];
+  }
+
+  Global.templateDense = Global.templateDense.map((d) => _rot(d));
+  Global.overlayDense = Global.overlayDense.map((d) => _rot(d));
+
+  console.log(`Rotation costs ${new Date() - start} milliseconds`);
+
+  redraw();
+
+  console.log(`Render costs ${new Date() - start} milliseconds`);
+
+  requestAnimationFrame(() => rotate(theta));
+}
+
+/**
+ * Convert the dense to slice points.
+ * @param {Array} dense The very big array of the MRI point cloud.
+ * @param {Object} filterColumn The object of select value on the column, like {column: 'z', value: 3}
+ * @param {Boolean} quickLookFlag The toggle whether use small size values
+ * @returns The array containing the points in the slice of filterColumn.
+ */
+function dense2slice(dense, filterColumn, quickLookFlag) {
+  if (!dense) return [];
+
+  var { column: columnName, value: columnValue } = filterColumn,
+    { columns } = Global,
+    columnIdx = columns.indexOf(columnName),
+    valueIdx = columns.indexOf("v"),
+    filtered = dense.filter((d) => Math.abs(d[columnIdx] - columnValue) < 0.5);
+
+  // Only use the 2000 points with the smallest values,
+  // it almost draw the outline of the slice,
+  // the purpose of the shrinking is to speed up the drawing during rapid processing.
+  if (quickLookFlag) {
+    filtered.sort((a, b) => a[valueIdx] - b[valueIdx]);
+    filtered = filtered.slice(0, 2000);
+  }
+
+  // console.log(`Found ${filtered.length} points in ${filterColumn}`);
+
+  const slice = filtered.map((d) => {
+    const obj = {};
+    columns.map((c, i) => {
+      // obj[c] = i < 3 ? parseInt(d[i] + 0.5) : d[i];
+      obj[c] = d[i];
+    });
+    return obj;
+  });
+
+  return slice;
+}
+
+// Render 3 views in animation frame with Promise.
+requestAnimationFrame(() => {
+    ["x", "y", "z"].map((column) => {
+      // If the current slice is correct, doing nothing.
+      if (!forceRedrawXYZ & (canvasOptions[column] === point[column])) {
+        console.log(`Not redraw the ${column} since the value is not changed`);
+        return;
+      }
+
+      if (column === "x") new Promise(renderX);
+      if (column === "y") new Promise(renderY);
+      if (column === "z") new Promise(renderZ);
+    });
+  });
+```
 
 ---
 # Vedo 的体积点云计算

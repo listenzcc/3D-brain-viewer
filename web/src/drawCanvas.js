@@ -1,7 +1,7 @@
 const canvasOptions = {
   pixelRatio: 2,
   heatMap: d3.scaleLinear().domain([3, 6]).range(["red", "white"]),
-  colorMap: d3.scaleLinear().domain([1, 100]).range(["gray", "white"]),
+  colorMap: d3.scaleLinear().domain([1, 100]).range(["#555555", "#ffffff"]),
   strokeStyle: "cyan",
   x: undefined,
   y: undefined,
